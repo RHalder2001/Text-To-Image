@@ -14,11 +14,25 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 
-await connectDB()
+const isDbConnected = await connectDB()
+
+if (!isDbConnected) {
+  console.warn('MongoDB is not connected. The app will continue running, but database features will be unavailable.')
+}
 
 app.use('/api/user', userRouter)
 app.use('/api/image', imageRouter)
 
 app.get('/', (req, res) => res.send("API Working..."))
 
-app.listen(PORT, () => console.log('Server running on port ' + PORT))
+const server = app.listen(PORT, () => console.log('Server running on port ' + PORT))
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Please stop the existing server or change PORT in your environment.`)
+  } else {
+    console.error('Server error:', error.message)
+  }
+
+  process.exit(1)
+})

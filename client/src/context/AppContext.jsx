@@ -45,9 +45,44 @@ const AppContextProvider = (props) => {
     }
   }, [token, backendUrl]);
 
+  const buyCredits = useCallback(async (credits) => {
+    if (!token) {
+      setShowLogin(true);
+      return false;
+    }
+
+    try {
+      const { data } = await axios.post(
+        backendUrl + 'api/user/buy-credits',
+        { credits },
+        { headers: { token } }
+      );
+
+      if (data.success) {
+        setCredit(data.creditBalance);
+        setUser(data.user);
+        toast.success(data.message || 'Credits added successfully');
+        return true;
+      }
+
+      toast.error(data.message || 'Unable to add credits');
+      return false;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(errorMessage);
+      return false;
+    }
+  }, [token, backendUrl]);
+
   //for imageImage generation 
   const generateImage = async (prompt) => {
   try {
+    if (credit !== false && credit <= 0) {
+      navigate('/buy');
+      toast.warning('You have no credits left. Buy more credits to continue.');
+      return null;
+    }
+
     const headers = token ? { token } : {};
     const { data } = await axios.post(
       backendUrl + 'api/image/generate-image',
@@ -110,6 +145,7 @@ const AppContextProvider = (props) => {
     credit,
     setCredit,
     loadCreditsData,
+    buyCredits,
     logout,
     generateImage
   }
